@@ -1,0 +1,28 @@
+# Virtual environment
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Test and tool caches
+.pytest_cache/
+.ruff_cache/
+
+# Packaging
+build/
+dist/
+
+# IDE and operating system
+.vscode/
+.idea/
+.DS_Store
+
+# Generated captures and recordings
+data/captures/*
+data/recordings/*
+
+# Keep empty directories in Git
+!data/captures/.gitkeep
+!data/recordings/.gitkeep
