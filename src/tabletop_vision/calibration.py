@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections.abc import Sequence
 
 import cv2
 import numpy as np
@@ -77,6 +78,59 @@ class CharucoBoardSpec:
     def marker_length_metres(self) -> float:
         return self.marker_length_mm / 1000.0
 
+@dataclass(frozen=True, slots=True)
+class CharucoDetection:
+    """Marker and ChArUco corner observations from one image."""
+
+    charuco_corners: np.ndarray | None
+    charuco_ids: np.ndarray | None
+    marker_corners: Sequence[np.ndarray]
+    marker_ids: np.ndarray | None
+
+    @property
+    def corner_count(self) -> int:
+        if self.charuco_ids is None:
+            return 0
+
+        return len(self.charuco_ids)
+
+    @property
+    def marker_count(self) -> int:
+        if (self.marker_ids is None):
+            return 0
+
+        return len(self.marker_ids)
+
+def create_charuco_detector(
+        spec: CharucoBoardSpec,
+) -> cv2.aruco.CharucoDetector:
+    """Create a detector configured from the specified board."""
+
+    board = create_charuco_board(spec)
+
+    return cv2.aruco.CharucoDetector(board)
+
+def detect_charuco_board(
+        detector: cv2.aruco.CharucoDetector,
+        frame: np.ndarray
+) -> CharucoDetection:
+    """Detect ChArUco markers and interpolated corners in one frame."""
+
+    grayscale = cv2.cvtColor(
+        frame,
+        cv2.COLOR_BGR2GRAY,
+    )
+
+    (charuco_corners,charuco_ids,marker_corners,marker_ids) = detector.detectBoard(grayscale)
+
+    return CharucoDetection(
+        charuco_corners=charuco_corners,
+        charuco_ids=charuco_ids,
+        marker_corners=marker_corners,
+        marker_ids=marker_ids,
+    )
+
+
 def millimetres_to_pixels(
         length_mm: float,
         dpi: int,
@@ -92,11 +146,10 @@ def millimetres_to_pixels(
     inches = length_mm / MILLIMETRES_PER_INCH
     return round(inches * dpi)
 
-def create_charuco_board_image(
-        spec: CharucoBoardSpec,
-        dpi: int = 300,
-) -> np.ndarray:
-    """Generate a printable grayscale ChArUco board image."""
+def create_charuco_board(
+    spec: CharucoBoardSpec,
+) -> cv2.aruco.CharucoBoard:
+    """Create the OpenCV ChArUco board described by the specification."""
 
     dictionary_id = getattr(
         cv2.aruco,
@@ -107,12 +160,20 @@ def create_charuco_board_image(
         dictionary_id
     )
 
-    board = cv2.aruco.CharucoBoard(
+    return cv2.aruco.CharucoBoard(
         (spec.squares_x, spec.squares_y),
         spec.square_length_metres,
         spec.marker_length_metres,
         dictionary,
     )
+
+def create_charuco_board_image(
+        spec: CharucoBoardSpec,
+        dpi: int = 300,
+) -> np.ndarray:
+    """Generate a printable grayscale ChArUco board image."""
+
+    board = create_charuco_board(spec)
 
     image_width = millimetres_to_pixels(
         spec.board_width_mm,

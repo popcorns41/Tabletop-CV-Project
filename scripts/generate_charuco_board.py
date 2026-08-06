@@ -60,6 +60,13 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--dpi",
+        type=int,
+        default=300,
+        help="Resolution of the generated PNG. Default: 300",
+    )
+
+    parser.add_argument(
         "--output-directory",
         type=Path,
         default=DEFAULT_OUTPUT_DIRECTORY,
