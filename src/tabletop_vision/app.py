@@ -71,7 +71,8 @@ def draw_text(
         text: str,
         position: tuple[int, int],
 ) -> None:
-    font = cv2.FONT_HERSHEY_SCRIPT_SIMPLEX
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 0.65
 
     #Dark outline keeps the text readable against bright camera frames.
     cv2.putText(
@@ -79,40 +80,50 @@ def draw_text(
         text,
         position,
         font,
-        0.65,
-        (0,0,0),
-        4,
-        cv2.LINE_AA,
-    )
-
-    cv2.putText(
-        frame,
-        text,
-        position,
-        font,
-        0.65,
+        font_scale,
         (255,255,255),
-        1,
+        2,
         cv2.LINE_AA,
     )
 
 def draw_diagnostics(
-        frame: np.ndarray,
-        measured_fps: float,
-        is_recording: bool,
+    frame: np.ndarray,
+    measured_fps: float,
+    is_recording: bool,
 ) -> None:
     height, width = frame.shape[:2]
 
     lines = [
         f"Resolution: {width}x{height}",
         f"Measured FPS: {measured_fps:.1f}",
-        f"Recording: {'ON' if is_recording else 'Off'}",
+        f"Recording: {'ON' if is_recording else 'OFF'}",
         "Q: quit | S: snapshot | R: record",
     ]
 
+    overlay = frame.copy()
+
+    # Dark panel behind the diagnostics.
+    cv2.rectangle(
+        overlay,
+        (0, 0),
+        (440, 145),
+        (0, 0, 0),
+        -1,
+    )
+
+    # Blend the panel with the camera image.
+    cv2.addWeighted(
+        overlay,
+        0.55,
+        frame,
+        0.45,
+        0,
+        frame,
+    )
+
     for index, line in enumerate(lines):
-        y_position = 30 + index * 28
-        draw_text(frame, line, (10, y_position))
+        y_position = 30 + index * 30
+        draw_text(frame, line, (12, y_position))
 
 def run(config: CameraConfig) -> None:
     recorder = VideoRecorder(RECORDING_DIRECTORY)
