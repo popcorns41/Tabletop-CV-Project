@@ -11,6 +11,12 @@ from tabletop_vision.perception.morphology import (
     create_kernel,
 )
 
+from tabletop_vision.perception.contours import (
+    contour_area,
+    largest_contour,
+    find_external_contours
+)
+
 __all__ = [
     "HSVRange",
     "apply_closing",
@@ -19,4 +25,7 @@ __all__ = [
     "convert_bgr_to_hsv",
     "create_hsv_mask",
     "create_kernel",
+    "contour_area",
+    "largest_contour",
+    "find_external_contours",
 ]

@@ -20,9 +20,24 @@ from tabletop_vision.perception.morphology import (
     clean_mask,
 )
 
+from tabletop_vision.perception.contours import (
+    find_external_contours,
+    largest_contour,
+)
+
 FRAME_WINDOW = "Original"
 MASK_WINDOW = "HSV Mask"
 CONTROLS_WINDOW = "HSV Controls"
+
+#DEFAULT_HSV_RANGE for Pepsi Deep Blue Can
+DEFAULT_HSV_RANGE = HSVRange(
+    hue_min=63,          
+    hue_max=179,
+    saturation_min=59,
+    saturation_max=255,
+    value_min=15,
+    value_max=91,
+)
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -60,7 +75,7 @@ def do_nothing(_: int) -> None:
     """Trackbar callback required by OpenCV."""
     return None
 
-def create_controls() -> None:
+def create_controls(initial_range: HSVRange) -> None:
     cv2.namedWindow(
         CONTROLS_WINDOW,
         cv2.WINDOW_NORMAL,
@@ -69,7 +84,7 @@ def create_controls() -> None:
     cv2.createTrackbar(
         "H min",
         CONTROLS_WINDOW,
-        0,
+        initial_range.hue_min,
         179,
         do_nothing,
     )
@@ -77,7 +92,7 @@ def create_controls() -> None:
     cv2.createTrackbar(
         "H max",
         CONTROLS_WINDOW,
-        179,
+        initial_range.hue_max,
         179,
         do_nothing,
     )
@@ -85,7 +100,7 @@ def create_controls() -> None:
     cv2.createTrackbar(
         "S min",
         CONTROLS_WINDOW,
-        0,
+        initial_range.saturation_min,
         255,
         do_nothing,
     )
@@ -93,7 +108,7 @@ def create_controls() -> None:
     cv2.createTrackbar(
         "S max",
         CONTROLS_WINDOW,
-        255,
+        initial_range.saturation_max,
         255,
         do_nothing,
     )
@@ -101,7 +116,7 @@ def create_controls() -> None:
     cv2.createTrackbar(
         "V min",
         CONTROLS_WINDOW,
-        0,
+        initial_range.value_min,
         255,
         do_nothing,
     )
@@ -109,7 +124,7 @@ def create_controls() -> None:
     cv2.createTrackbar(
         "V max",
         CONTROLS_WINDOW,
-        255,
+        initial_range.value_max,
         255,
         do_nothing,
     )
@@ -150,7 +165,7 @@ def run(arguments: argparse.Namespace) -> None:
         fps=arguments.fps,
     )
 
-    create_controls()
+    create_controls(DEFAULT_HSV_RANGE)
 
     try:
         with Webcam(config) as camera:
@@ -169,10 +184,29 @@ def run(arguments: argparse.Namespace) -> None:
                 #     kernel_size=3,
                 # )
 
+                contours = find_external_contours(mask)
+                target = largest_contour(contours)
+
+                display_frame = frame.copy()
+
+                if target is not None:
+                    cv2.drawContours(
+                        display_frame,
+                        [target],
+                        -1,
+                        (0,255,0),
+                        2,
+                    )
+
                 cv2.imshow(
                     FRAME_WINDOW,
-                    frame,
+                    display_frame,
                 )
+
+                # cv2.imshow(
+                #     FRAME_WINDOW,
+                #     frame,
+                # )
 
                 cv2.imshow(
                     MASK_WINDOW,
