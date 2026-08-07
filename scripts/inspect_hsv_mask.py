@@ -16,6 +16,10 @@ from tabletop_vision.perception.colour import (
     create_hsv_mask,
 )
 
+from tabletop_vision.perception.morphology import (
+    clean_mask,
+)
+
 FRAME_WINDOW = "Original"
 MASK_WINDOW = "HSV Mask"
 CONTROLS_WINDOW = "HSV Controls"
@@ -160,6 +164,11 @@ def run(arguments: argparse.Namespace) -> None:
                     colour_range,
                 )
 
+                # cleaned_mask = clean_mask(
+                #     mask,
+                #     kernel_size=3,
+                # )
+
                 cv2.imshow(
                     FRAME_WINDOW,
                     frame,
@@ -169,6 +178,11 @@ def run(arguments: argparse.Namespace) -> None:
                     MASK_WINDOW,
                     mask,
                 )
+
+                # cv2.imshow(
+                #     "Cleaned Mask",
+                #     cleaned_mask,
+                # )
 
                 key = cv2.waitKey(10) & 0xFF
 
