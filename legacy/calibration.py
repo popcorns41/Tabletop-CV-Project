@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+
+import json
 from collections.abc import Sequence
+from pathlib import Path
 
 import cv2
 import numpy as np
+
+
+"""Depreciated version of calibration, started getting too long so newer version decomposes
+functionality across a calibration package"""
 
 MILLIMETRES_PER_INCH = 25.4
 
@@ -101,34 +108,16 @@ class CharucoDetection:
 
         return len(self.marker_ids)
 
-def create_charuco_detector(
-        spec: CharucoBoardSpec,
-) -> cv2.aruco.CharucoDetector:
-    """Create a detector configured from the specified board."""
+@dataclass(frozen=True, slots=True)
+class ClaibrationObservation:
+    """Known board points and their detected image positions in one view."""
+    image_path: Path
+    object_points: np.ndarray
+    image_points: np.ndarray
 
-    board = create_charuco_board(spec)
-
-    return cv2.aruco.CharucoDetector(board)
-
-def detect_charuco_board(
-        detector: cv2.aruco.CharucoDetector,
-        frame: np.ndarray
-) -> CharucoDetection:
-    """Detect ChArUco markers and interpolated corners in one frame."""
-
-    grayscale = cv2.cvtColor(
-        frame,
-        cv2.COLOR_BGR2GRAY,
-    )
-
-    (charuco_corners,charuco_ids,marker_corners,marker_ids) = detector.detectBoard(grayscale)
-
-    return CharucoDetection(
-        charuco_corners=charuco_corners,
-        charuco_ids=charuco_ids,
-        marker_corners=marker_corners,
-        marker_ids=marker_ids,
-    )
+    @property
+    def point_count(self) -> int:
+        return len(self.object_points)
 
 
 def millimetres_to_pixels(
