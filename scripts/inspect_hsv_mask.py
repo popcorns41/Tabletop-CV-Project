@@ -23,7 +23,8 @@ from tabletop_vision.perception.morphology import (
 from tabletop_vision.perception.contours import (
     find_external_contours,
     largest_contour,
-    filter_contours_by_area
+    filter_contours_by_area,
+    contour_centroid
 )
 
 FRAME_WINDOW = "Original"
@@ -158,6 +159,9 @@ def read_colour_range() -> HSVRange:
         ),
     )
 
+
+
+
 def run(arguments: argparse.Namespace) -> None:
     config = CameraConfig(
         index=arguments.camera,
@@ -190,10 +194,12 @@ def run(arguments: argparse.Namespace) -> None:
                     contours,
                     minimum_area=1000.0,
                 )
-                
+
                 target = largest_contour(valid_contours)
 
                 display_frame = frame.copy()
+
+
 
                 if target is not None:
                     cv2.drawContours(
@@ -203,6 +209,36 @@ def run(arguments: argparse.Namespace) -> None:
                         (0,255,0),
                         2,
                     )
+
+                    centroid = contour_centroid(
+                        target
+                    )
+
+                    if centroid is not None:
+                        centre_x, centre_y = centroid
+
+                        cv2.drawMarker(
+                            display_frame,
+                            (centre_x, centre_y),
+                            (0, 0, 255),
+                            markerType=cv2.MARKER_CROSS,
+                            markerSize=24,
+                            thickness=2,
+                        )
+
+                        cv2.putText(
+                            display_frame,
+                            f"({centre_x}, {centre_y})",
+                            (
+                                centre_x + 12,
+                                centre_y - 12,
+                            ),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.6,
+                            (0,0,255),
+                            2,
+                            cv2.LINE_AA,
+                        )
 
                 cv2.imshow(
                     FRAME_WINDOW,

@@ -75,4 +75,25 @@ def filter_contours_by_area(
         accepted.append(contour)
 
     return accepted
-    
+
+def contour_centroid(
+        contour: np.ndarray,
+) -> tuple[int, int] | None:
+    """Return the centroid of a contour in pixel coordinates."""
+
+    moments = cv2.moments(contour)
+    area = moments["m00"]
+
+    if area == 0:
+        return None
+
+    centre_x = int(
+        round(moments["m10"] / area)
+    )
+
+    centre_y = int(
+            round(moments["m01"] / area)
+        )
+
+    return centre_x, centre_y
+
