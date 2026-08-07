@@ -107,3 +107,11 @@ class CameraCalibrationResult:
     translation_vectors: Sequence[np.ndarray]
 
     per_view_errors: tuple[float, ...]
+
+@dataclass(frozen=True, slots=True)
+class UndistortionMaps:
+    """Precomputed pixel mappings for real-time image undistortion."""
+
+    map_x: np.ndarray
+    map_y: np.ndarray
+    camera_matrix: np.ndarray

@@ -16,10 +16,17 @@ from tabletop_vision.calibration.models import (
     CameraCalibrationResult,
     CharucoBoardSpec,
     CharucoDetection,
+    UndistortionMaps,
 )
 from tabletop_vision.calibration.solver import (
     calculate_reprojection_rmse,
     calibrate_camera,
+)
+
+from tabletop_vision.calibration.undistortion import (
+    undistort_frame,
+    create_undistortion_maps,
+    apply_undistortion
 )
 
 

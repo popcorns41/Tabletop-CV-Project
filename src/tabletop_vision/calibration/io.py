@@ -4,10 +4,60 @@ from tabletop_vision.calibration.models import (
     CharucoBoardSpec
 )
 
+import numpy as np
 from pathlib import Path
 from typing import Sequence
 import json
 
+#The I of our I/O file
+def load_camera_calibration(
+        input_path: Path,
+) -> CameraCalibrationResult:
+    """Load camera calibration parameters from JSON."""
+
+    if not input_path.exists():
+        raise FileNotFoundError(
+            f"Calibration file does not exist: {input_path}"
+        )
+
+    payload = json.loads(
+        input_path.read_text(encoding="utf-8")
+    )
+
+    image_size = (
+        int(payload["image_width"]),
+        int(payload["image_height"]),
+    )
+
+    camera_matrix = np.asarray(
+        payload["camera_matrix"],
+        dtype=np.float64,
+    )
+
+    distortion_coefficients = np.asarray(
+        payload["distortion_coefficients"],
+        dtype=np.float64,
+    )
+
+    #Yet to save per-image extrinsics to JSON, intrinsic calibration utilised by 
+    #the camera pipeline
+
+    return CameraCalibrationResult(
+        image_size=image_size,
+        rms_reprojection_error=float(payload["rms_reprojection_error"]),
+        camera_matrix=camera_matrix,
+        distortion_coefficients=distortion_coefficients,
+        rotation_vectors=(),
+        translation_vectors=(),
+        per_view_errors=tuple(
+            float(view["reprojection_rmse_pixels"])
+            for view in payload.get("views", [])
+        ),
+    )
+
+
+
+#The O of our I/O file
 def save_camera_calibration(
         result: CameraCalibrationResult,
         observations: Sequence[CalibrationObservation],
@@ -70,3 +120,5 @@ def save_camera_calibration(
         +"\n",
         encoding="utf-8",
     )
+
+

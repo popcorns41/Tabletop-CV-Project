@@ -6,12 +6,14 @@ from pathlib import Path
 import cv2
 
 from tabletop_vision.calibration import(
+    CameraCalibrationResult,
     CalibrationObservation,
     CharucoBoardSpec,
     calibrate_camera,
     create_charuco_board,
     create_charuco_board_image,
     millimetres_to_pixels,
+    create_undistortion_maps,
 )
 
 def test_default_board_dimensios() -> None:
@@ -153,5 +155,32 @@ def test_calibration_recovers_synthetic_camera() -> None:
     assert len(result.rotation_vectors) == 15
     assert len(result.translation_vectors) == 15
     assert len(result.per_view_errors) == 15
+
+
+def test_undistortion_maps_match_image_size() -> None:
+    calibration = CameraCalibrationResult(
+        image_size=(1280, 720),
+        rms_reprojection_error=0.0,
+        camera_matrix=np.array(
+            [
+                [900.0, 0.0, 640.0],
+                [0.0, 900.0, 360.0],
+                [0.0, 0.0, 1.0],
+            ],
+            dtype=np.float64
+        ),
+        distortion_coefficients=np.array(
+            [0.1, -0.05, 0.001, -0.001, 0.0],
+            dtype=np.float64
+        ),
+        rotation_vectors=(),
+        translation_vectors=(),
+        per_view_errors=(),
+    )
+
+    maps = create_undistortion_maps(calibration)
+
+    assert maps.map_x.shape == (720, 1280)
+    assert maps.map_y.shape == (720, 1280)
     
         
