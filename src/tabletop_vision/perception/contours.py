@@ -37,3 +37,42 @@ def largest_contour(
         contours,
         key=cv2.contourArea,
     )
+
+def filter_contours_by_area(
+        contours: list[np.ndarray],
+        minimum_area: float,
+        maximum_area: float | None = None,
+) -> list[np.ndarray]:
+    """Return contours whose areas lie within the requested range."""
+
+    if minimum_area < 0:
+        raise ValueError(
+            "minimum_area must not be negative."
+        )
+
+    if (
+        maximum_area is not None
+        and maximum_area < minimum_area
+    ):
+        raise ValueError(
+            "maximum_area must not be smaller than minimum_area."
+        )
+
+    accepted: list[np.ndarray] = []
+
+    for contour in contours:
+        area = cv2.contourArea(contour)
+
+        if area < minimum_area:
+            continue
+
+        if (
+            maximum_area is not None
+            and area > maximum_area
+        ):
+            continue
+
+        accepted.append(contour)
+
+    return accepted
+    

@@ -23,6 +23,7 @@ from tabletop_vision.perception.morphology import (
 from tabletop_vision.perception.contours import (
     find_external_contours,
     largest_contour,
+    filter_contours_by_area
 )
 
 FRAME_WINDOW = "Original"
@@ -185,7 +186,12 @@ def run(arguments: argparse.Namespace) -> None:
                 # )
 
                 contours = find_external_contours(mask)
-                target = largest_contour(contours)
+                valid_contours = filter_contours_by_area(
+                    contours,
+                    minimum_area=1000.0,
+                )
+                
+                target = largest_contour(valid_contours)
 
                 display_frame = frame.copy()
 

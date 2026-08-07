@@ -14,7 +14,8 @@ from tabletop_vision.perception.morphology import (
 from tabletop_vision.perception.contours import (
     contour_area,
     largest_contour,
-    find_external_contours
+    find_external_contours,
+    filter_contours_by_area
 )
 
 __all__ = [
@@ -28,4 +29,5 @@ __all__ = [
     "contour_area",
     "largest_contour",
     "find_external_contours",
+    "filter_contours_by_area",
 ]
