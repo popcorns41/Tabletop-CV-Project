@@ -48,7 +48,7 @@ class DatasetWriter:
         height, width = frame.shape[:2]
 
         filename = (
-            f"frame_{self._next_index:0.06d}.jpg"
+            f"frame_{self._next_index:06d}.jpg"
         )
 
         image_path = (
