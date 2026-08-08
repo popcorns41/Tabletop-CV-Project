@@ -21,8 +21,13 @@ from tabletop_vision.perception.contours import (
     long_axis_endpoints,
 )
 
+from tabletop_vision.perception.detection import (
+    detect_largest_object,
+)
+
 from tabletop_vision.perception.models import (
-    RotatedRectangle
+    RotatedRectangle,
+    ObjectDetection
 )
 
 __all__ = [

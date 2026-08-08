@@ -32,6 +32,14 @@ from tabletop_vision.perception.contours import (
     long_axis_endpoints,
 )
 
+from tabletop_vision.perception.detection import (
+    detect_largest_object
+)
+
+from tabletop_vision.perception.models import (
+    ObjectDetection
+)
+
 FRAME_WINDOW = "Original"
 MASK_WINDOW = "HSV Mask"
 CONTROLS_WINDOW = "HSV Controls"
@@ -45,6 +53,8 @@ DEFAULT_HSV_RANGE = HSVRange(
     value_min=15,
     value_max=91,
 )
+
+# ========================== SYS ARGS PARSING ==========================
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -77,6 +87,20 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     return parser.parse_args()
+
+# ======================== CAMERA CONFIGURATION =========================
+
+def create_camera_config(
+        arguments: argparse.Namespace,
+) -> CameraConfig:
+    return CameraConfig(
+        index=arguments.camera,
+        width=arguments.width,
+        height=arguments.height,
+        fps=arguments.fps,
+    )
+
+# ======================== INTERACTIVE HSV MASK INSPECTION =========================
 
 def do_nothing(_: int) -> None:
     """Trackbar callback required by OpenCV."""
@@ -164,79 +188,88 @@ def read_colour_range() -> HSVRange:
         ),
     )
 
+# ======================= DRAW FUNCTIONS =========================
 
-
-def create_camera_config(
-        arguments: argparse.Namespace,
-) -> CameraConfig:
-    return CameraConfig(
-        index=arguments.camera,
-        width=arguments.width,
-        height=arguments.height,
-        fps=arguments.fps,
-    )
-
-def find_target_contour(
-        mask: np.ndarray,
-) -> np.ndarray | None:
-    contours = find_external_contours(
-        mask
-    )
-
-    valid_contours = filter_contours_by_area(
-        contours,
-        minimum_area=1000.0,
-    )
-
-    return largest_contour(
-        valid_contours
-    )
-
-def draw_target(
+def draw_diagnostic_text(
     frame: np.ndarray,
-    target: np.ndarray | None,
+    detection: ObjectDetection | None,
 ) -> None:
-    if target is None:
+    if detection is None:
+        return
+
+    centre_x, centre_y = detection.centroid
+
+    rectangle = detection.rotated_rectangle
+
+    lines = [
+        f"({centre_x}, {centre_y})",
+        f"angle = {rectangle.angle_degrees:.1f} deg",
+        f"area = {detection.area_pixels_squared:.0f} px^2",
+        (
+            f"size = "
+            f"{rectangle.width:.0f} x "
+            f"{rectangle.height:.0f} px"
+        ),
+    ]
+
+    text_x = centre_x + 12
+    text_y = centre_y + 24
+    line_spacing = 24
+
+    for index, line in enumerate(lines):
+        cv2.putText(
+            frame,
+            line,
+            (
+                text_x,
+                text_y + index * line_spacing,
+            ),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (0, 255, 255),
+            2,
+            cv2.LINE_AA,
+        )
+    
+
+def draw_detection(
+    frame: np.ndarray,
+    detection: ObjectDetection | None,
+) -> None:
+    if detection is None:
         return
 
     cv2.drawContours(
         frame,
-        [target],
+        [detection.contour],
         -1,
         (0, 255, 0),
         2,
     )
 
-    centroid = contour_centroid(
-        target
-    )
-
-    if centroid is None:
-        return
-
     draw_centroid(
         frame,
-        centroid,
-    )
-
-    rotated_rectangle = contour_rotated_rectangle(
-        target
+        detection.centroid,
     )
 
     draw_rotated_rectangle(
         frame,
-        rotated_rectangle,
+        detection.rotated_rectangle,
     )
 
-    start_point, end_point = long_axis_endpoints(rotated_rectangle)
+    start_point, end_point = long_axis_endpoints(detection.rotated_rectangle)
 
     draw_long_axis_direction(
         frame,
-        start_point,
-        end_point,
-        rotated_rectangle
+        start_point=start_point,
+        end_point=end_point,
+        rotated_rectangle=detection.rotated_rectangle,
     )
 
+    draw_diagnostic_text(
+        frame=frame,
+        detection=detection,
+    )
 
 def draw_long_axis_direction(
         frame: np.ndarray,
@@ -252,36 +285,10 @@ def draw_long_axis_direction(
         3
     )
 
-    centre_x = int(
-    round(rotated_rectangle.centre[0])
-)
-
-    centre_y = int(
-    round(rotated_rectangle.centre[1])
-    )
-
-    cv2.putText(
-        frame,
-        (
-            f"angle="
-            f"{rotated_rectangle.angle_degrees:.1f} deg"
-        ),
-        (
-            centre_x + 12,
-            centre_y + 24,
-        ),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.6,
-        (0, 255, 255),
-        2,
-        cv2.LINE_AA,
-    )
-
 def draw_centroid(
     frame: np.ndarray,
     centroid: tuple[int, int],
 ) -> None:
-    centre_x, centre_y = centroid
 
     cv2.drawMarker(
         frame,
@@ -290,20 +297,6 @@ def draw_centroid(
         markerType=cv2.MARKER_CROSS,
         markerSize=24,
         thickness=2,
-    )
-
-    cv2.putText(
-        frame,
-        f"({centre_x}, {centre_y})",
-        (
-            centre_x + 12,
-            centre_y - 12,
-        ),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.6,
-        (0, 0, 255),
-        2,
-        cv2.LINE_AA,
     )
 
 def draw_rotated_rectangle(
@@ -322,6 +315,8 @@ def draw_rotated_rectangle(
         thickness=2,
     )
 
+# ====================== FRAME PROCESSING =========================
+
 def process_frame(
     frame: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -332,18 +327,21 @@ def process_frame(
         colour_range,
     )
 
-    target = find_target_contour(
-        mask
+    detection = detect_largest_object(
+        mask,
+        minimum_area=1000.0,
     )
 
     display_frame = frame.copy()
 
-    draw_target(
+
+    draw_detection(
         display_frame,
-        target,
+        detection,
     )
 
     return display_frame, mask
+
 
 def show_windows(
     display_frame: np.ndarray,
