@@ -26,3 +26,5 @@ data/recordings/*
 # Keep empty directories in Git
 !data/captures/.gitkeep
 !data/recordings/.gitkeep
+
+legacy/
