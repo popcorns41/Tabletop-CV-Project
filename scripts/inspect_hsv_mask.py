@@ -23,11 +23,6 @@ from tabletop_vision.perception.morphology import (
 )
 
 from tabletop_vision.perception.contours import (
-    find_external_contours,
-    largest_contour,
-    filter_contours_by_area,
-    contour_centroid,
-    contour_rotated_rectangle,
     RotatedRectangle,
     long_axis_endpoints,
 )
@@ -38,6 +33,10 @@ from tabletop_vision.perception.detection import (
 
 from tabletop_vision.perception.models import (
     ObjectDetection
+)
+
+from tabletop_vision.tracking.filters import (
+    PositionSmoother
 )
 
 FRAME_WINDOW = "Original"
@@ -315,10 +314,32 @@ def draw_rotated_rectangle(
         thickness=2,
     )
 
+def draw_filtered_position(
+    frame: np.ndarray,
+    position: tuple[float, float],
+) -> None:
+    x = int(
+        round(position[0])
+    )
+
+    y = int(
+        round(position[1])
+    )
+
+    cv2.drawMarker(
+        frame,
+        (x, y),
+        (255, 255, 0),
+        markerType=cv2.MARKER_DIAMOND,
+        markerSize=18,
+        thickness=2,
+    )
+
 # ====================== FRAME PROCESSING =========================
 
 def process_frame(
     frame: np.ndarray,
+    position_smoother: PositionSmoother,
 ) -> tuple[np.ndarray, np.ndarray]:
     colour_range = read_colour_range()
 
@@ -339,6 +360,16 @@ def process_frame(
         display_frame,
         detection,
     )
+
+    if detection is not None:
+        filtered_position = position_smoother.update(
+            detection.centroid
+        )
+
+        draw_filtered_position(
+            display_frame,
+            filtered_position,
+        )
 
     return display_frame, mask
 
@@ -400,8 +431,13 @@ def run(
             while True:
                 frame = camera.read()
 
+                position_smoother = PositionSmoother(
+                    alpha=0.25
+                )
+
                 display_frame, mask = process_frame(
-                    frame
+                    frame,
+                    position_smoother,
                 )
 
                 show_windows(
