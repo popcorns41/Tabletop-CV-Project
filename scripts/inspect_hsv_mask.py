@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import sys
 
+import numpy as np
+
 import cv2
 
 from tabletop_vision.camera import (
@@ -24,7 +26,10 @@ from tabletop_vision.perception.contours import (
     find_external_contours,
     largest_contour,
     filter_contours_by_area,
-    contour_centroid
+    contour_centroid,
+    contour_rotated_rectangle,
+    RotatedRectangle,
+    long_axis_endpoints,
 )
 
 FRAME_WINDOW = "Original"
@@ -161,121 +166,254 @@ def read_colour_range() -> HSVRange:
 
 
 
-
-def run(arguments: argparse.Namespace) -> None:
-    config = CameraConfig(
+def create_camera_config(
+        arguments: argparse.Namespace,
+) -> CameraConfig:
+    return CameraConfig(
         index=arguments.camera,
         width=arguments.width,
         height=arguments.height,
         fps=arguments.fps,
     )
 
-    create_controls(DEFAULT_HSV_RANGE)
+def find_target_contour(
+        mask: np.ndarray,
+) -> np.ndarray | None:
+    contours = find_external_contours(
+        mask
+    )
+
+    valid_contours = filter_contours_by_area(
+        contours,
+        minimum_area=1000.0,
+    )
+
+    return largest_contour(
+        valid_contours
+    )
+
+def draw_target(
+    frame: np.ndarray,
+    target: np.ndarray | None,
+) -> None:
+    if target is None:
+        return
+
+    cv2.drawContours(
+        frame,
+        [target],
+        -1,
+        (0, 255, 0),
+        2,
+    )
+
+    centroid = contour_centroid(
+        target
+    )
+
+    if centroid is None:
+        return
+
+    draw_centroid(
+        frame,
+        centroid,
+    )
+
+    rotated_rectangle = contour_rotated_rectangle(
+        target
+    )
+
+    draw_rotated_rectangle(
+        frame,
+        rotated_rectangle,
+    )
+
+    start_point, end_point = long_axis_endpoints(rotated_rectangle)
+
+    draw_long_axis_direction(
+        frame,
+        start_point,
+        end_point,
+        rotated_rectangle
+    )
+
+
+def draw_long_axis_direction(
+        frame: np.ndarray,
+        start_point: tuple[int,int],
+        end_point: tuple[int,int],
+        rotated_rectangle: RotatedRectangle
+) -> None:
+    cv2.line(
+        frame,
+        start_point,
+        end_point,
+        (0,255,255),
+        3
+    )
+
+    centre_x = int(
+    round(rotated_rectangle.centre[0])
+)
+
+    centre_y = int(
+    round(rotated_rectangle.centre[1])
+    )
+
+    cv2.putText(
+        frame,
+        (
+            f"angle="
+            f"{rotated_rectangle.angle_degrees:.1f} deg"
+        ),
+        (
+            centre_x + 12,
+            centre_y + 24,
+        ),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.6,
+        (0, 255, 255),
+        2,
+        cv2.LINE_AA,
+    )
+
+def draw_centroid(
+    frame: np.ndarray,
+    centroid: tuple[int, int],
+) -> None:
+    centre_x, centre_y = centroid
+
+    cv2.drawMarker(
+        frame,
+        centroid,
+        (0, 0, 255),
+        markerType=cv2.MARKER_CROSS,
+        markerSize=24,
+        thickness=2,
+    )
+
+    cv2.putText(
+        frame,
+        f"({centre_x}, {centre_y})",
+        (
+            centre_x + 12,
+            centre_y - 12,
+        ),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.6,
+        (0, 0, 255),
+        2,
+        cv2.LINE_AA,
+    )
+
+def draw_rotated_rectangle(
+    frame: np.ndarray,
+    rectangle: RotatedRectangle,
+) -> None:
+    box_points = rectangle.corners.astype(
+        np.int32
+    )
+
+    cv2.polylines(
+        frame,
+        [box_points],
+        isClosed=True,
+        color=(255, 0, 255),
+        thickness=2,
+    )
+
+def process_frame(
+    frame: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
+    colour_range = read_colour_range()
+
+    mask = create_hsv_mask(
+        frame,
+        colour_range,
+    )
+
+    target = find_target_contour(
+        mask
+    )
+
+    display_frame = frame.copy()
+
+    draw_target(
+        display_frame,
+        target,
+    )
+
+    return display_frame, mask
+
+def show_windows(
+    display_frame: np.ndarray,
+    mask: np.ndarray,
+) -> None:
+    cv2.imshow(
+        FRAME_WINDOW,
+        display_frame,
+    )
+
+    cv2.imshow(
+        MASK_WINDOW,
+        mask,
+    )
+
+def is_window_closed() -> bool:
+    try:
+        visible = cv2.getWindowProperty(
+            FRAME_WINDOW,
+            cv2.WND_PROP_VISIBLE,
+        )
+
+        return visible < 1
+
+    except cv2.error:
+        return True
+
+def quit_key_pressed() -> bool:
+    key = cv2.waitKey(10) & 0xFF
+
+    return key in (
+        ord("q"),
+        ord("Q"),
+        27,
+    )
+
+def should_quit() -> bool:
+    return (
+        quit_key_pressed()
+        or is_window_closed()
+    )
+
+def run(
+    arguments: argparse.Namespace,
+) -> None:
+    config = create_camera_config(
+        arguments
+    )
+
+    create_controls(
+        DEFAULT_HSV_RANGE
+    )
 
     try:
         with Webcam(config) as camera:
             while True:
                 frame = camera.read()
 
-                colour_range = read_colour_range()
-
-                mask = create_hsv_mask(
-                    frame,
-                    colour_range,
+                display_frame, mask = process_frame(
+                    frame
                 )
 
-                # cleaned_mask = clean_mask(
-                #     mask,
-                #     kernel_size=3,
-                # )
-
-                contours = find_external_contours(mask)
-                valid_contours = filter_contours_by_area(
-                    contours,
-                    minimum_area=1000.0,
-                )
-
-                target = largest_contour(valid_contours)
-
-                display_frame = frame.copy()
-
-
-
-                if target is not None:
-                    cv2.drawContours(
-                        display_frame,
-                        [target],
-                        -1,
-                        (0,255,0),
-                        2,
-                    )
-
-                    centroid = contour_centroid(
-                        target
-                    )
-
-                    if centroid is not None:
-                        centre_x, centre_y = centroid
-
-                        cv2.drawMarker(
-                            display_frame,
-                            (centre_x, centre_y),
-                            (0, 0, 255),
-                            markerType=cv2.MARKER_CROSS,
-                            markerSize=24,
-                            thickness=2,
-                        )
-
-                        cv2.putText(
-                            display_frame,
-                            f"({centre_x}, {centre_y})",
-                            (
-                                centre_x + 12,
-                                centre_y - 12,
-                            ),
-                            cv2.FONT_HERSHEY_SIMPLEX,
-                            0.6,
-                            (0,0,255),
-                            2,
-                            cv2.LINE_AA,
-                        )
-
-                cv2.imshow(
-                    FRAME_WINDOW,
+                show_windows(
                     display_frame,
-                )
-
-                # cv2.imshow(
-                #     FRAME_WINDOW,
-                #     frame,
-                # )
-
-                cv2.imshow(
-                    MASK_WINDOW,
                     mask,
                 )
 
-                # cv2.imshow(
-                #     "Cleaned Mask",
-                #     cleaned_mask,
-                # )
-
-                key = cv2.waitKey(10) & 0xFF
-
-                if key in (ord("q"),ord("Q"),27,):
+                if should_quit():
                     break
 
-                try:
-                    visible = cv2.getWindowProperty(
-                        FRAME_WINDOW,
-                        cv2.WND_PROP_VISIBLE,
-                    )
-
-                    if visible < 1:
-                        break
-
-                except cv2.error:
-                    break
     finally:
         cv2.destroyAllWindows()
         cv2.waitKey(1)

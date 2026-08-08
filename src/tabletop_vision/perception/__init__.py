@@ -17,6 +17,12 @@ from tabletop_vision.perception.contours import (
     largest_contour,
     find_external_contours,
     filter_contours_by_area,
+    contour_rotated_rectangle,
+    long_axis_endpoints,
+)
+
+from tabletop_vision.perception.models import (
+    RotatedRectangle
 )
 
 __all__ = [
@@ -32,4 +38,7 @@ __all__ = [
     "find_external_contours",
     "filter_contours_by_area",
     "contour_centroid",
+    "RotatedRectangle",
+    "contour_rotated_rectangle",
+    "long_axis_endpoints",
 ]

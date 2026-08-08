@@ -3,6 +3,12 @@ from __future__ import annotations
 import cv2
 import numpy as np
 
+import math
+
+from tabletop_vision.perception.models import (
+    RotatedRectangle,
+)
+
 def find_external_contours(
         mask: np.ndarray,
 ) -> list[np.ndarray]:
@@ -96,4 +102,107 @@ def contour_centroid(
         )
 
     return centre_x, centre_y
+
+def contour_rotated_rectangle(
+        contour: np.ndarray,
+) -> RotatedRectangle:
+    """Return the minimum-area rectangle and long-axis orientation."""
+
+    rectangle = cv2.minAreaRect(contour)
+
+    centre, _, _ = rectangle
+
+    corners = cv2.boxPoints(
+        rectangle
+    ).astype(np.float32)
+
+    longest_length = -1.0
+    shortest_length = math.inf
+
+    longest_dx = 0.0
+    longest_dy = 0.0
+
+    for index in range(4):
+        start = corners[index]
+        end = corners[(index + 1) % 4]
+
+        dx = float(end[0] - start[0])
+        dy = float(end[1] - start[1])
+
+        length = math.hypot(
+            dx,
+            dy,
+        )
+
+        if length > longest_length:
+            longest_length = length
+            longest_dx = dx
+            longest_dy = dy
+
+        if length < shortest_length:
+            shortest_length = length
+
+    angle_degrees = math.degrees(
+        math.atan2(
+            longest_dy,
+            longest_dx,
+        )
+    )
+
+    #An axis has 180-degree symmetry.
+    #Normalise it into [-90, 90].
+
+    while angle_degrees >= 90.0:
+        angle_degrees -= 180.0
+
+    while angle_degrees < -90.0:
+        angle_degrees += 180.0
+
+    return RotatedRectangle(
+
+        centre= (
+            float(centre[0]),
+            float(centre[1])
+        ),
+        width = longest_length,
+        height= shortest_length,
+        angle_degrees= angle_degrees,
+        corners= corners,
+    )
+
+def long_axis_endpoints(
+        rotated_rectangle: RotatedRectangle,
+) -> tuple[tuple[int,int],tuple[int,int]]:
+    """Return the long axis direction end points of a given Rotated Rectangle"""
+
+    angle_radians = math.radians(
+        rotated_rectangle.angle_degrees
+    )
+
+    centre_x = int(
+        round(rotated_rectangle.centre[0])
+    )
+
+    centre_y = int(
+        round(rotated_rectangle.centre[1])
+    )
+
+    half_length = (
+        rotated_rectangle.width / 2.0
+    )
+
+    dx = math.cos(angle_radians) * half_length
+    dy = math.sin(angle_radians) * half_length
+
+    start_point = (
+        int(round(centre_x - dx)),
+        int(round(centre_y -dy)),
+    )
+
+    end_point = (
+        int(round(centre_x + dx)),
+        int(round(centre_y + dy)),
+    )
+
+    return start_point, end_point
 
