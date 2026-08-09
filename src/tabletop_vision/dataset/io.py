@@ -80,7 +80,7 @@ class DatasetWriter:
                 datetime.now(timezone.utc)
                 .isoformat()
             ),
-            environments=self._environment,
+            environment=self._environment,
             session = self._session,
             target_present=target_present,
         )
@@ -124,7 +124,7 @@ class DatasetWriter:
             "width" : metadata.width,
             "height" : metadata.height,
             "timestamp" : metadata.timestamp,
-            "environment" : metadata.environments,
+            "environment" : metadata.environment,
             "session": metadata.session,
             "target_present": metadata.target_present
         }
@@ -137,3 +137,59 @@ class DatasetWriter:
                 json.dumps(payload)
                 + "\n"
             )
+
+def load_dataset_metadata(
+        input_path: Path,
+) -> list[DatasetImageMetadata]:
+    """Load captured image metadata from JSON Lines."""
+
+    if not input_path.exists():
+        raise FileNotFoundError(
+            f"Metadata file does not exist: {input_path}"
+        )
+
+    metadata: list[DatasetImageMetadata] = []
+
+    with input_path.open(
+        "r",
+        encoding="utf-8",
+    ) as file:
+        for line_number, line in enumerate(
+            file,
+            start=1,
+        ):
+            stripped = line.strip()
+
+            if not stripped:
+                continue
+
+            try:
+                payload = json.loads(stripped)
+
+            except json.JSONDecodeError as error:
+                raise ValueError(
+                    f"Invalid metadata JSON on line {line_number}."
+                ) from error
+
+            metadata.append(
+                DatasetImageMetadata(
+                    filename=payload["filename"],
+                    width=int(payload["width"]),
+                    height=int(payload["height"]),
+                    timestamp=payload["timestamp"],
+                    environment=payload.get(
+                        "environment"
+                    ),
+                    session=payload.get(
+                        "session"
+                    ),
+                    target_present=bool(
+                        payload.get(
+                            "target_present",
+                            True,
+                        )
+                    ),
+                )
+            )
+
+    return metadata

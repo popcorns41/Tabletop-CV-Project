@@ -11,7 +11,7 @@ class DatasetImageMetadata:
     height: int
     timestamp: str
 
-    environments: str | None = None
+    environment: str | None = None
     session: str | None = None
     target_present: bool = True
 
@@ -64,3 +64,11 @@ class ImageAnnotation:
             raise ValueError(
                 "filename must not be empty."
             )
+
+@dataclass(frozen=True, slots=True)
+class DatasetSplit:
+    """Filename assignments for model training and evaluation."""
+
+    train: tuple[str, ...]
+    validation: tuple[str, ...]
+    test: tuple[str, ...]

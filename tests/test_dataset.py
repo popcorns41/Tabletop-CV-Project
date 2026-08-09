@@ -35,7 +35,7 @@ def test_dataset_writer_saves_image(
     assert metadata.width == 200
     assert metadata.height == 100
 
-    assert metadata.environments == (
+    assert metadata.environment == (
         "test_room"
     )
 
