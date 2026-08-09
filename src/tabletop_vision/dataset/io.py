@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 
 from tabletop_vision.dataset.models import (
-    DataImageMetadata,
+    DatasetImageMetadata,
 )
 
 class DatasetWriter:
@@ -18,6 +18,7 @@ class DatasetWriter:
             self,
             root_directory: Path,
             environment: str | None = None,
+            session: str | None = None,
     ) -> None:
         self._root_directory = root_directory
         self._images_directory = (
@@ -29,6 +30,7 @@ class DatasetWriter:
         )
 
         self._environment = environment
+        self._session = session
 
         self._images_directory.mkdir(
             parents=True,
@@ -44,7 +46,8 @@ class DatasetWriter:
     def save_frame(
             self,
             frame: np.ndarray,
-    ) -> DataImageMetadata:
+            target_present: bool = True,
+    ) -> DatasetImageMetadata:
         height, width = frame.shape[:2]
 
         filename = (
@@ -69,7 +72,7 @@ class DatasetWriter:
                 f"Failed to save image: {image_path}"
             )
 
-        metadata = DataImageMetadata(
+        metadata = DatasetImageMetadata(
             filename=filename,
             width=width,
             height=height,
@@ -78,6 +81,8 @@ class DatasetWriter:
                 .isoformat()
             ),
             environments=self._environment,
+            session = self._session,
+            target_present=target_present,
         )
 
         self._append_metadata(
@@ -112,7 +117,7 @@ class DatasetWriter:
 
     def _append_metadata(
             self,
-            metadata: DataImageMetadata,
+            metadata: DatasetImageMetadata,
     ) -> None:
         payload = {
             "filename" : metadata.filename,
@@ -120,6 +125,8 @@ class DatasetWriter:
             "height" : metadata.height,
             "timestamp" : metadata.timestamp,
             "environment" : metadata.environments,
+            "session": metadata.session,
+            "target_present": metadata.target_present
         }
 
         with self._metadata_path.open(

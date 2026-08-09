@@ -7,6 +7,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from enum import Enum, auto
+
 from tabletop_vision.camera import(
     CameraConfig,
     CameraError,
@@ -22,6 +24,12 @@ WINDOW_NAME = "Dataset Capture"
 DEFAULT_OUTPUT_DIRECTORY = Path(
     "data/dataset"
 )
+
+class UserAction(Enum):
+    NONE = auto()
+    SAVE_POSITIVE = auto()
+    SAVE_NEGATIVE = auto()
+    QUIT = auto()
 
 # ===== Argument Parser =====
 
@@ -73,6 +81,13 @@ def parse_arguments() -> argparse.Namespace:
         ),
     )
 
+    parser.add_argument(
+        "--session",
+        type=str,
+        default=None,
+        help="Optional capture-session identifier.",
+    )
+
     return parser.parse_args()
 
 
@@ -89,7 +104,8 @@ def draw_status(
             f"Environment: "
             f"{environment or 'unspecified'}"
         ),
-        "S: save frame",
+        "P: save positive frame",
+        "N: save negative frame",
         "Q / Esc: quit"
     ]
 
@@ -108,7 +124,10 @@ def draw_status(
             cv2.LINE_AA,
         )
 
-def read_user_action() -> tuple[bool, bool]:
+# ==== User Action ====
+
+
+def read_user_action() -> UserAction:
     """Return quit and save requests from the OpenCV UI."""
 
     key = cv2.waitKey(10) & 0xFF
@@ -118,7 +137,19 @@ def read_user_action() -> tuple[bool, bool]:
         ord("Q"),
         27,
     ):
-        return True, False
+        return UserAction.QUIT
+
+    if key in (
+        ord("p"),
+        ord("P"),
+    ):
+        return UserAction.SAVE_POSITIVE
+
+    if key in (
+        ord("n"),
+        ord("N"),
+    ):
+        return UserAction.SAVE_NEGATIVE
 
     try:
         visible = cv2.getWindowProperty(
@@ -127,17 +158,12 @@ def read_user_action() -> tuple[bool, bool]:
         )
 
         if visible < 1:
-            return True, False
+            return UserAction.QUIT
 
     except cv2.error:
-        return True, False
+        return UserAction.QUIT
 
-    save_requested = key in (
-        ord("s"),
-        ord("S"),
-    )
-
-    return False, save_requested
+    return UserAction.NONE
 
 
 def run(
@@ -153,6 +179,7 @@ def run(
     writer = DatasetWriter(
         root_directory=arguments.output,
         environment=arguments.environment,
+        session=arguments.session,
     )
 
     cv2.namedWindow(
@@ -178,21 +205,29 @@ def run(
                     display_frame,
                 )
 
-                (
-                    quit_requested,
-                    save_requested,
-                ) = read_user_action()
+                action = read_user_action()
 
-                if quit_requested:
+                if action is UserAction.QUIT:
                     break
 
-                if save_requested:
+                if action is UserAction.SAVE_POSITIVE:
                     metadata = writer.save_frame(
-                        frame
+                        frame,
+                        target_present=True,
                     )
 
                     print(
-                        f"Saved {metadata.filename}"
+                        f"Saved positive: {metadata.filename}"
+                    )
+
+                elif action is UserAction.SAVE_NEGATIVE:
+                    metadata = writer.save_frame(
+                        frame,
+                        target_present=False,
+                    )
+
+                    print(
+                        f"Saved positive: {metadata.filename}"
                     )
 
     finally:
