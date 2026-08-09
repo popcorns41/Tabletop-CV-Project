@@ -21,6 +21,10 @@ from tabletop_vision.dataset.splits import (
     save_dataset_split,
 )
 
+from tabletop_vision.dataset.validation import (
+    validate_dataset,
+)
+
 __all__ = [
     "AnnotationWriter",
     "DatasetImageMetadata",
@@ -33,4 +37,5 @@ __all__ = [
     "DatasetSplit",
     "create_session_split",
     "save_dataset_split",
+    "validate_dataset",
 ]

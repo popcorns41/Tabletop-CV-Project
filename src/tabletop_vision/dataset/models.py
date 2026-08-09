@@ -72,3 +72,14 @@ class DatasetSplit:
     train: tuple[str, ...]
     validation: tuple[str, ...]
     test: tuple[str, ...]
+
+@dataclass(frozen=True, slots=True)
+class DatasetValidationReport:
+    """Errors and warnings found while validating a dataset. """
+
+    errors: tuple[str, ...]
+    warnings: tuple[str, ...]
+
+    @property
+    def is_valid(self) -> bool:
+        return not self.errors
