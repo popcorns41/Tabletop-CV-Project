@@ -16,6 +16,13 @@ from tabletop_vision.learned.ultralytics_dataset import (
     export_ultralytics_dataset,
 )
 
+from tabletop_vision.learned.evaluation import (
+    SegmentationEvaluationConfig,
+    SegmentationEvaluationReport,
+    evaluate_instance_segmenter,
+    validate_evaluation_config,
+)
+
 __all__ = [
     "InstanceSegmenter",
     "SegmentationPrediction",
@@ -23,4 +30,8 @@ __all__ = [
     "export_ultralytics_dataset",
     "train_instance_segmenter",
     "validate_training_config",
+    "SegmentationEvaluationConfig",
+    "SegmentationEvaluationReport",
+    "evaluate_instance_segmenter",
+    "validate_evaluation_config",
 ]

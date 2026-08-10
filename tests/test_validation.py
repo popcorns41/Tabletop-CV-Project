@@ -320,3 +320,5 @@ def test_validator_detects_duplicate_annotation(
         "Duplicate annotation entry: frame.jpg" in error
         for error in report.errors
     )
+
+    
