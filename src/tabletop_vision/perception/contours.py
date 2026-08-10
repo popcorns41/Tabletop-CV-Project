@@ -206,3 +206,28 @@ def long_axis_endpoints(
 
     return start_point, end_point
 
+def segmentation_polygon_to_contour(
+        polygon: np.ndarray,
+) -> np.ndarray:
+    """Convert a segmentation polygon into an OpenCV contour."""
+
+    if polygon.ndim != 2:
+        raise ValueError(
+            "Polygon must have shape (N, 2)."
+        )
+
+    if polygon.shape[1] != 2:
+        raise ValueError(
+            "Polygon points must contain x and y."
+        )
+
+    if len(polygon) < 3:
+        raise ValueError(
+            "Polygon must contain at least three points."
+        )
+
+    return polygon.reshape(
+        -1,
+        1,
+        2,
+    ).astype(np.float32)

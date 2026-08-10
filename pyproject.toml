@@ -12,6 +12,7 @@ dependencies = [
     "numpy>=1.26",
     "opencv-contrib-python>=4.10",
     "reportlab>=4.2",
+    "ultralytics",
 ]
 
 [project.optional-dependencies]

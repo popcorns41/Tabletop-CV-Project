@@ -19,6 +19,7 @@ from tabletop_vision.perception.contours import (
     filter_contours_by_area,
     contour_rotated_rectangle,
     long_axis_endpoints,
+    segmentation_polygon_to_contour,
 )
 
 from tabletop_vision.perception.detection import (
@@ -46,4 +47,5 @@ __all__ = [
     "RotatedRectangle",
     "contour_rotated_rectangle",
     "long_axis_endpoints",
+    "segmentation_polygon_to_contour",
 ]
