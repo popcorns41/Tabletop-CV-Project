@@ -13,6 +13,7 @@ dependencies = [
     "opencv-contrib-python>=4.10",
     "reportlab>=4.2",
     "ultralytics",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
