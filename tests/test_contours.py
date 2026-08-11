@@ -7,7 +7,7 @@ from tabletop_vision.perception import (
     find_external_contours,
     contour_centroid,
     contour_rotated_rectangle,
-    segmentation_polygon_to_contour
+    polygon_to_contour
 )
 
 def test_find_external_contours_find_blob() -> None:
@@ -142,7 +142,7 @@ def test_segmentation_polygon_to_contour() -> None:
         dtype=np.float32
     )
 
-    contour = segmentation_polygon_to_contour(
+    contour = polygon_to_contour(
         polygon
     )
 
@@ -171,6 +171,6 @@ def test_segmentation_polygon_rejects_too_few_points() -> None:
     )
 
     with pytest.raises(ValueError):
-        segmentation_polygon_to_contour(
+        polygon_to_contour(
             polygon
         )

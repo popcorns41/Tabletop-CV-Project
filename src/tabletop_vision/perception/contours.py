@@ -206,7 +206,7 @@ def long_axis_endpoints(
 
     return start_point, end_point
 
-def segmentation_polygon_to_contour(
+def polygon_to_contour(
         polygon: np.ndarray,
 ) -> np.ndarray:
     """Convert a segmentation polygon into an OpenCV contour."""

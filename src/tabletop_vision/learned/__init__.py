@@ -23,6 +23,11 @@ from tabletop_vision.learned.evaluation import (
     validate_evaluation_config,
 )
 
+from tabletop_vision.learned.detection import (
+    prediction_to_object_detection,
+    select_target_prediction,
+)
+
 __all__ = [
     "InstanceSegmenter",
     "SegmentationPrediction",
@@ -34,4 +39,6 @@ __all__ = [
     "SegmentationEvaluationReport",
     "evaluate_instance_segmenter",
     "validate_evaluation_config",
+    "prediction_to_object_detection",
+    "select_target_prediction",
 ]
