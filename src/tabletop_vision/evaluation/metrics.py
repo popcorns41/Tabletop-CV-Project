@@ -3,6 +3,7 @@ from __future__ import annotations
 from tabletop_vision.evaluation.models import (
     GroundTruthPose,
     FrameEvaluation,
+    PerceptionEvaluationReport,
 )
 
 
@@ -14,11 +15,6 @@ from tabletop_vision.perception.models import(
 from collections.abc import Sequence
 
 import numpy as np
-
-from tabletop_vision.evaluation.models import (
-    FrameEvaluation,
-    PerceptionEvaluationReport,
-)
 
 import math
 
