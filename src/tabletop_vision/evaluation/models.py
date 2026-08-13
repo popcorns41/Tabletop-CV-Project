@@ -14,6 +14,7 @@ class EstimatedPose:
 
 @dataclass(frozen=True, slots=True)
 class FrameEvaluation:
+    target_present: bool
     detected: bool
     latency_ms: float
 
@@ -24,7 +25,15 @@ class FrameEvaluation:
 @dataclass(frozen=True, slots=True)
 class PerceptionEvaluationReport:
     frame_count: int
-    detection_rate: float
+
+    true_positives: int
+    false_positives: int
+    true_negatives: int
+    false_negatives: int
+
+    precision: float | None
+    recall: float | None
+    false_positive_rate: float | None
 
     mean_centroid_error_pixels: float | None
     median_centroid_error_pixels: float | None
